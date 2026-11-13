@@ -1,0 +1,43 @@
+name: Build Mac app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            label: Apple-Silicon
+          - runner: macos-15-intel
+            label: Intel
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: pip install PySide6 pyinstaller
+
+      - name: Build the app
+        run: pyinstaller --clean --noconfirm --windowed --name "Wedding Photo Selector" wedding_selector.py
+
+      - name: Zip the app
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/Wedding Photo Selector.app" "Wedding-Photo-Selector-${{ matrix.label }}.zip"
+
+      - name: Save the download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wedding-Photo-Selector-${{ matrix.label }}
+          path: Wedding-Photo-Selector-${{ matrix.label }}.zip
